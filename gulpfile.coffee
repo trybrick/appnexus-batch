@@ -28,6 +28,7 @@ config =
 
   # path to pos files
   files: glob.sync './*.hif'
+  workbase: path.resolve './test'
   isProd: gutil.env.type is 'prod'
 
   azure: require './azure.json'
@@ -91,7 +92,7 @@ batchInsert = (items, cb) ->
   # gutil.log batchItems.length
   # gutil.log batch
 
-  MyAzureRecord.store(batchItems, 1).then db
+  MyAzureRecord.store(batchItems, 1).then cb
 
   return
 
@@ -102,6 +103,12 @@ batchRequestStream = createBatchRequestStream({
   maxLiveRequests: config.azureConfig.concurrency,    
   streamOptions: { objectMode: true }
 })
+
+getWorkPath = (fileName) ->
+  fullPath = path.resolve(fileName)
+  extension = path.extname(fileName)
+  fileNameNoExtension = path.basename(fullPath, extension)
+  return path.join(config.workbase, fileNameNoExtension)
 
 # doUpload to azure table
 doUploadTable = (fullPath, cb) ->
@@ -134,7 +141,7 @@ transform = (fullPath, cb) ->
   fileParts = fileName.split('-')
   chainId = fileParts[0]
   schemaIdx = config.chains[chainId]
-  outPath = fullPath.replace('.hif', '')
+  outPath = getWorkPath(fullPath)
   if !fs.existsSync(outPath)
     mkdirp(outPath)
   
@@ -203,7 +210,7 @@ transform = (fullPath, cb) ->
 gulp.task 'transform', (cb) ->  
   transformTasks = []
   for v, k in config.files
-    taskName = 'transform' + v
+    taskName = 'transform: ' + path.basename(v)
     transformTasks.push(taskName)
     fullPath = path.resolve(v)
     gulp.task taskName, (myCb) ->
@@ -215,8 +222,8 @@ gulp.task 'uploadBlob', () ->
   mySources = []
   for v, k in config.files
     # gzip and upload
-    dirName = v.replace('.hif', '')
-    # gutil.log dirName
+    dirName = getWorkPath(v)
+    gutil.log dirName
 
     searchName = path.join(dirName, 'pos*.csv')
     mySources.push(searchName)
@@ -233,7 +240,7 @@ gulp.task 'uploadBlob', () ->
           cacheControl: 'public, max-age=31530000', 
           cacheControlHeader: 'public, max-age=31530000' 
       },
-      testRun: false 
+      testRun: !config.isProd 
   })).on('error', gutil.log);
 
 # upload Table
@@ -241,8 +248,7 @@ gulp.task 'uploadTable', () ->
   tableTasks = []
   # collect upload tasks
   for v, k in config.files
-    fullPath = path.resolve(v)
-    dirName = fullPath.replace('.hif', '')
+    dirName = getWorkPath(v)
     gutil.log dirName
 
     searchName = path.join(dirName, 'pos20*.csv')
