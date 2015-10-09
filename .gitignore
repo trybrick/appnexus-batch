@@ -120,3 +120,6 @@ bower_components/
 *.iml
 node_modules/
 .DS_Store
+azure.json
+*.csv
+*.hif
