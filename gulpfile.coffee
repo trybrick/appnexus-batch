@@ -311,7 +311,11 @@ gulp.task 'uploadBlob', () ->
       testRun: !config.isProd 
   })).on('error', gutil.log);
 
-createUploadTableTask = (taskName, fullPath) ->
+createUploadTableTask = (tableTasks, v, k) ->
+  fullPath = v
+
+  taskName = 'azure-table-upload-' + k
+  tableTasks.push(taskName)
   gulp.task taskName, (myCb) ->
     setTimeout () ->
       # let stat output catch up before proceeding
@@ -333,9 +337,7 @@ gulp.task 'uploadTable', (cb) ->
     files = glob.sync searchName
 
     for v, k in files
-      taskName = 'azure-table-upload-' + k
-      tableTasks.push(taskName)
-      createUploadTableTask taskName, v
+      createUploadTableTask tableTasks, v, k
 
   tableTasks.push(cb)
   runSequence.apply(null, tableTasks)
