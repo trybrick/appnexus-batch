@@ -180,7 +180,7 @@ doUploadTable = (fullPath, cb) ->
       if err
         gutil.log err
 
-  config.saveStat = debounce(saveStat, 1500)
+  config.saveStat = debounce(saveStat, 500)
   config.stat.skip = config.stat.batchCount
   config.stat.batchCount = 0
   gutil.log config.stat
@@ -192,8 +192,12 @@ doUploadTable = (fullPath, cb) ->
       .pipe(batchRequestStream)
 
   readStream.on 'end', () ->
-    config.stat.completed = true
-    config.saveStat?()
+    # make sure final save stat is longer than debounce
+    setTimeout () ->
+      config.stat.completed = true
+      saveStat()
+    , 600
+
     cb?()
     cb = null
 
