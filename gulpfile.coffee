@@ -28,11 +28,11 @@ config =
     218: ["StoreNumber", "UPC", "PurchaseDateRaw", "PurchasePrice", "ExternalId", "Quantity", "Weight", "TransactionType"]
 
   # path to pos files
-  files: glob.sync './*.hif'
-  workbase: path.resolve './test'
+  files: glob.sync '../pos/stage/*.hif'
+  workbase: path.resolve '../pos/work'
   isProd: gutil.env.type is 'prod'
 
-  azure: require './azure.json'
+  azure: require '../azure.json'
   azureConfig: 
     batchSize: 100
     concurrency: 100   # batchSize * concurrency = 10K which is half of 20K message azure limit
