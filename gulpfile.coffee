@@ -80,6 +80,7 @@ initAzureTable = (record) ->
         model.Id
       TableName: () ->
         record.TableName
+
     config.azureConfig.tables[record.TableName] = table
     try
       item = table.build(record)
@@ -102,7 +103,7 @@ batchInsert = (items, cb) ->
   gutil.log "#{config.batchCount}:#{config.stat.batchCount}"
 
   firstItem = items[0]
-  timeout = if config.azureConfig.tables[firstItem.TableName]? then 500 else 50
+  timeout = if config.azureConfig.tables[firstItem.TableName]? then 500 else 1500
   initAzureTable firstItem
   gutil.log timeout
 
