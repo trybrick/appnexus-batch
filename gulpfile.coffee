@@ -131,6 +131,7 @@ doUploadTable = (fullPath, cb) ->
   config.stat =
       batchCount: 0
       skip: 0
+      completed: false
 
   try
     config.stat = require statFileName
@@ -138,9 +139,19 @@ doUploadTable = (fullPath, cb) ->
     config.stat =
       batchCount: 0
       skip: 0
+      completed: false
+
+  if (config.stat.completed)
+    gutil.log "skip complete file: #{path.basename(fullPath)}"
+    cb()
+    return
   
   saveStat = (myBatchCount) ->
-    fs.writeFile statFileName, JSON.stringify({batchCount: myBatchCount}), (err) ->
+    obj = {
+      batchCount: myBatchCount || config.stat.batchCount
+      completed: config.stat.completed
+    }
+    fs.writeFile statFileName, JSON.stringify(obj), (err) ->
       if err
         gutil.log err
 
@@ -156,6 +167,8 @@ doUploadTable = (fullPath, cb) ->
       .pipe(batchRequestStream)
 
   readStream.on 'end', () ->
+    config.stat.completed = true
+    config.saveStat?()
     cb?()
     cb = null
 
@@ -279,7 +292,10 @@ gulp.task 'uploadBlob', () ->
 
 createUploadTableTask = (taskName, fullPath) ->
   gulp.task taskName, (myCb) ->
-    doUploadTable(fullPath, myCb)
+    setTimeout () ->
+      # let stat output catch up before proceeding
+      doUploadTable(fullPath, myCb)
+    , 1500
 
 # upload Table
 gulp.task 'uploadTable', () ->
