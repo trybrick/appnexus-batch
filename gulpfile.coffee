@@ -333,6 +333,7 @@ gulp.task 'uploadTable', (cb) ->
     files = glob.sync searchName
 
     for v, k in files
+      gutil.log v
       createUploadTableTask tableTasks, v, k
 
   tableTasks.push(cb)
