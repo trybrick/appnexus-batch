@@ -170,7 +170,9 @@ transform = (fullPath, cb) ->
   schemaIdx = config.chains[chainId]
   outPath = getWorkPath(fullPath)
   if !fs.existsSync(outPath)
-    mkdirp(outPath)
+    mkdirp outPath, () ->
+      transform fullPath, cb
+    return
   
   if fs.existsSync(path.join(outPath, '_.csv'))
     cb()
@@ -219,6 +221,7 @@ transform = (fullPath, cb) ->
         #gutil.log outFile
 
         if !outStreams[outFile]
+          gutil.log "creating: #{path.basename(outFile)}"
           outStreams[outFile] = fs.createWriteStream(outFile)
           outStreams[outFile].write(config.output.join(',') + '\n')
         
