@@ -84,7 +84,7 @@ initAzureTable = (record) ->
     config.azureConfig.tables[record.TableName] = table
     try
       item = table.build(record)
-      item.Id = item.Id + '-init'
+      item.Id = 'warmup-' + item.Id
       table.store([item], 1)
     catch err
       gutil.log err
