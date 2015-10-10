@@ -81,7 +81,20 @@ initAzureTable = (record) ->
       TableName: () ->
         record.TableName
     config.azureConfig.tables[record.TableName] = table
-    table.azureCalls.createTableIfNotExists record.TableName, (error, result, response) ->
+    try
+      table.build({
+        ChainId: 1
+        StoreNumber: '1', 
+        UPC: '1', 
+        PurchaseDate: '2001/01/01', 
+        PurchasePrice: 1, 
+        ExternalId: '1',
+        Quantity: 1,
+        Weight: '1',
+        TransactionType: '1',
+        Id: '1'
+      }).insert()
+    catch err
       # do nothing
 
 batchInsert = (items, cb) ->
