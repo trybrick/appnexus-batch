@@ -64,7 +64,7 @@ azureTables.config(config.azure.account, config.azure.key)
 initAzureTable = (record) ->
   if (!config.azureConfig.tables[record.TableName])
     table = azureTables.define
-      ChainId: Number
+      ChainId: String
       StoreNumber: String
       UPC: String
       PurchaseDate: String
@@ -92,8 +92,7 @@ initAzureTable = (record) ->
         Quantity: 1,
         Weight: '1',
         TransactionType: '1',
-        Id: '1',
-        _: '1'
+        Id: '1'
       }).merge()
     catch err
       gutil.log err
