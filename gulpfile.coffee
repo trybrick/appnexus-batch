@@ -118,7 +118,11 @@ batchInsert = (items, cb) ->
         # gutil.log 'existingItem ' + v.Id
         continue
       existingItems[v.Id] = v
-      batchItems.push table.build(v)
+      item = table.build(v)
+
+      # do not include returned item
+      if parseFloat(item.Quantity) > 0
+        batchItems.push item
     
     # gutil.log batchItems.length
     # gutil.log batch
