@@ -97,7 +97,7 @@ batchInsert = (items, cb) ->
 
   # support continue
   if (config.stat.skip > config.stat.batchCount)
-    gutil.log "skip-#{config.stat.batchCount}"
+    # gutil.log "skip-#{config.stat.batchCount}"
     cb()
     return
 
@@ -106,7 +106,7 @@ batchInsert = (items, cb) ->
   firstItem = items[0]
   timeout = if config.azureConfig.tables[firstItem.TableName]? then 500 else 1500
   initAzureTable firstItem
-  gutil.log timeout
+  # gutil.log timeout
 
   setTimeout () ->
     table = config.azureConfig.tables[firstItem.TableName]
