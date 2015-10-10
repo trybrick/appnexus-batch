@@ -104,7 +104,7 @@ batchInsert = (items, cb) ->
   gutil.log "#{config.batchCount}:#{config.stat.batchCount}"
 
   firstItem = items[0]
-  timeout = if config.azureConfig.tables[firstItem.TableName]? then 500 else 1500
+  timeout = if config.azureConfig.tables[firstItem.TableName]? then 50 else 1500
   initAzureTable firstItem
   # gutil.log timeout
 
@@ -180,7 +180,7 @@ doUploadTable = (fullPath, cb) ->
       if err
         gutil.log err
 
-  config.saveStat = debounce(saveStat, 1000)
+  config.saveStat = debounce(saveStat, 1500)
   config.stat.skip = config.stat.batchCount
   config.stat.batchCount = 0
   gutil.log config.stat
