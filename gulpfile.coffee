@@ -262,7 +262,8 @@ gulp.task 'transform', (cb) ->
     fullPath = path.resolve(v)
     createTransformTask taskName, fullPath
 
-  runSequence transformTasks, cb
+  traskformTasks.push(cb)
+  runSequence.apply(null, transformTasks)
 
 # upload Blob
 gulp.task 'uploadBlob', () ->
@@ -298,7 +299,7 @@ createUploadTableTask = (taskName, fullPath) ->
     , 1500
 
 # upload Table
-gulp.task 'uploadTable', () ->
+gulp.task 'uploadTable', (cb) ->
   tableTasks = []
   # collect upload tasks
   for v, k in config.files
@@ -316,7 +317,8 @@ gulp.task 'uploadTable', () ->
       tableTasks.push(taskName)
       createUploadTableTask taskName, v
 
-  runSequence.apply(null, tableTasks);
+  tableTasks.push(cb)
+  runSequence.apply(null, tableTasks)
 
 gulp.task 'default', (cb) ->
   runSequence 'transform', 'uploadBlob', 'uploadTable', cb
