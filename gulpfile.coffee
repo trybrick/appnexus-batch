@@ -275,7 +275,7 @@ gulp.task 'uploadBlob', () ->
     dirName = getWorkPath(v)
 
     if (!config.cancelBlobUpload[dirName])
-      gutil.log dirName
+      # gutil.log dirName
       searchName = path.join(dirName, 'pos*.csv')
       mySources.push(searchName)
       # gutil.log searchName
@@ -288,7 +288,7 @@ gulp.task 'uploadBlob', () ->
       folder: config.today.format('YYYYMM/DD'), 
       zip: true, 
       deleteExistingBlobs: false, 
-      concurrentUploadThreads: 10, 
+      concurrentUploadThreads: 2, 
       metadata: {
           cacheControl: 'public, max-age=31530000', 
           cacheControlHeader: 'public, max-age=31530000' 
@@ -309,10 +309,10 @@ gulp.task 'uploadTable', (cb) ->
   # collect upload tasks
   for v, k in config.files
     dirName = getWorkPath(v)
-    gutil.log dirName
+    # gutil.log dirName
 
     searchName = path.join(dirName, 'pos20*.csv')
-    gutil.log searchName
+    # gutil.log searchName
 
     # glob and create a task for each file
     files = glob.sync searchName
