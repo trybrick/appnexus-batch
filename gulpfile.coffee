@@ -14,6 +14,7 @@ path            = require 'path'
 mkdirp          = require 'mkdirp'
 nop             = require 'gulp-nop'
 createBatchRequestStream           = require 'batch-request-stream'
+debounce        = require 'debounce'
 
 # CONFIG ---------------------------------------------------------
 
@@ -37,6 +38,8 @@ config =
     concurrency: 100   # batchSize * concurrency = 10K which is half of 20K message azure limit
   today: moment(new Date())
   batchCount: 0
+  saveStat: null
+  stat: {}
 
   # resulting output schema
   output: [
@@ -57,8 +60,16 @@ config =
 azureTables.config(config.azure.account, config.azure.key)
 
 batchInsert = (items, cb) ->
-  gutil.log config.batchCount
   config.batchCount++
+  myBatchCount = config.stat.batchCount++
+
+  # support continue
+  if (config.stat.skip > config.stat.batchCount)
+    gutil.log "skip-#{config.stat.batchCount}"
+    cb()
+    return
+
+  gutil.log "#{config.batchCount}:#{config.stat.batchCount}"
 
   firstItem = items[0]
 
@@ -92,17 +103,13 @@ batchInsert = (items, cb) ->
   # gutil.log batchItems.length
   # gutil.log batch
 
-  MyAzureRecord.store(batchItems, 1).then cb
+  MyAzureRecord.store(batchItems, 1).then () ->
+    config.saveStat?(myBatchCount)
+    cb()
 
   return
 
 # create stream request to definition for batch
-batchRequestStream = createBatchRequestStream({
-  request: batchInsert,
-  batchSize: config.azureConfig.batchSize,         
-  maxLiveRequests: config.azureConfig.concurrency,    
-  streamOptions: { objectMode: true }
-})
 
 getWorkPath = (fileName) ->
   fullPath = path.resolve(fileName)
@@ -112,16 +119,36 @@ getWorkPath = (fileName) ->
 
 # doUpload to azure table
 doUploadTable = (fullPath, cb) ->
+  batchRequestStream = createBatchRequestStream({
+    request: batchInsert,
+    batchSize: config.azureConfig.batchSize,         
+    maxLiveRequests: config.azureConfig.concurrency,    
+    streamOptions: { objectMode: true }
+  })
+
   # gutil.log fullPath
   statFileName = fullPath.replace('.csv', '.json')
-  stat = 
-    currentBatch: 0
+  config.stat =
+      batchCount: 0
+      skip: 0
 
   try
-    stat = require statFileName
+    config.stat = require statFileName
   catch err
-    # gutil.log err
+    config.stat =
+      batchCount: 0
+      skip: 0
   
+  saveStat = (myBatchCount) ->
+    fs.writeFile statFileName, JSON.stringify({batchCount: myBatchCount}), (err) ->
+      if err
+        gutil.log err
+
+  config.saveStat = debounce(saveStat, 200)
+  config.stat.skip = config.stat.batchCount
+  config.stat.batchCount = 0
+  gutil.log config.stat
+
   gutil.log fullPath
   readStream = fs.createReadStream(fullPath)
   readStream.on 'open', () ->
@@ -206,6 +233,10 @@ transform = (fullPath, cb) ->
 
   return
 
+createTransformTask = (taskName, fullPath) ->
+  gulp.task taskName, (myCb) ->
+    transform(fullPath, myCb)
+
 # transform and separate file by purchase date
 gulp.task 'transform', (cb) ->  
   transformTasks = []
@@ -213,8 +244,8 @@ gulp.task 'transform', (cb) ->
     taskName = 'transform: ' + path.basename(v)
     transformTasks.push(taskName)
     fullPath = path.resolve(v)
-    gulp.task taskName, (myCb) ->
-      transform(fullPath, myCb)
+    createTransformTask taskName, fullPath
+
   runSequence transformTasks, cb
 
 # upload Blob
@@ -243,6 +274,10 @@ gulp.task 'uploadBlob', () ->
       testRun: !config.isProd 
   })).on('error', gutil.log);
 
+createUploadTableTask = (taskName, fullPath) ->
+  gulp.task taskName, (myCb) ->
+    doUploadTable(fullPath, myCb)
+
 # upload Table
 gulp.task 'uploadTable', () ->
   tableTasks = []
@@ -260,8 +295,7 @@ gulp.task 'uploadTable', () ->
     for v, k in files
       taskName = 'azure-table-upload-' + k
       tableTasks.push(taskName)
-      gulp.task taskName, (myCb) ->
-        doUploadTable(v, myCb)
+      createUploadTableTask taskName, v
 
   runSequence.apply(null, tableTasks);
 

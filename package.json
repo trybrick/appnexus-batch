@@ -6,6 +6,7 @@
     "azure-table-client": "*",
     "batch-request-stream": "*",
     "csv": "*",
+    "debounce": "*",
     "run-sequence": "^0.3.6",
     "coffee-script": "*",
     "gulp": "*",
