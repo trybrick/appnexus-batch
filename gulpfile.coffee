@@ -86,10 +86,7 @@ initAzureTable = (record) ->
     try
       tableService = azure.createTableService(config.azure.account, config.azure.key)
       tableService.createTableIfNotExists record.TableName, (error, result, response) ->
-        if !error
-          # result contains true if created; false if already exists
-        else
-        return
+        # do nothing
     catch err
       gutil.log err
       # do nothing
