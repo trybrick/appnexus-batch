@@ -310,11 +310,7 @@ gulp.task 'uploadBlob', () ->
       folder: config.today.format('YYYYMM/DD'), 
       zip: true, 
       deleteExistingBlobs: false, 
-      concurrentUploadThreads: 2, 
-      metadata: {
-          cacheControl: 'public, max-age=31530000', 
-          cacheControlHeader: 'public, max-age=31530000' 
-      },
+      concurrentUploadThreads: 2,
       testRun: !config.isProd 
   })).on('error', gutil.log);
 
