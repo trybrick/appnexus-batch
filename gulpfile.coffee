@@ -61,6 +61,29 @@ config =
 # initializing azure table config
 azureTables.config(config.azure.account, config.azure.key)
 
+initAzureTable = (record) ->
+  if (!config.azureConfig.tables[record.TableName])
+    table = azureTables.define
+      ChainId: Number
+      StoreNumber: String
+      UPC: String
+      PurchaseDate: String
+      PurchasePrice: Number
+      ExternalId: String
+      Quantity: Number
+      Weight: String
+      TransactionType: String
+      Id: String
+      PartitionKey: (model) ->
+        model.ChainId
+      RowKey: (model) ->
+        model.Id
+      TableName: () ->
+        record.TableName
+    config.azureConfig.tables[record.TableName] = table
+    table.azureCalls.createTableIfNotExists record.TableName, (error, result, response) ->
+      # do nothing
+
 batchInsert = (items, cb) ->
   config.batchCount++
   myBatchCount = config.stat.batchCount++
@@ -74,24 +97,28 @@ batchInsert = (items, cb) ->
   gutil.log "#{config.batchCount}:#{config.stat.batchCount}"
 
   firstItem = items[0]
+  timeout = if config.azureConfig.tables[firstItem.TableName]? then 500 else 50
+  initAzureTable firstItem
 
-  MyAzureRecord = config.azureConfig.tables[firstItem.TableName]
+  setTimeout () ->
+    MyAzureRecord = config.azureConfig.tables[firstItem.TableName]
 
-  batchItems = []
-  existingItems = {}
-  for v, k in items
-    if (existingItems[v.Id]?)
-      # gutil.log 'existingItem ' + v.Id
-      continue
-    existingItems[v.Id] = v
-    batchItems.push MyAzureRecord.build(v)
-  
-  # gutil.log batchItems.length
-  # gutil.log batch
+    batchItems = []
+    existingItems = {}
+    for v, k in items
+      if (existingItems[v.Id]?)
+        # gutil.log 'existingItem ' + v.Id
+        continue
+      existingItems[v.Id] = v
+      batchItems.push MyAzureRecord.build(v)
+    
+    # gutil.log batchItems.length
+    # gutil.log batch
 
-  MyAzureRecord.store(batchItems, 1).then () ->
-    config.saveStat?(myBatchCount)
-    cb()
+    MyAzureRecord.store(batchItems, 1).then () ->
+      config.saveStat?(myBatchCount)
+      cb()
+  , timeout
 
   return
 
@@ -207,28 +234,7 @@ transform = (fullPath, cb) ->
         newRecord.PurchasePrice = (newRecord.PurchasePrice + '').replace(/[^\d.-]/g, '')
         newRecord.Id = "#{newRecord.ExternalId}__#{theDate.format('YYYYMMDD')}__#{newRecord.UPC}"
         newRecord.TableName = "pos#{theDate.format('YYYYMM')}"
-
-        if (!config.azureConfig.tables[newRecord.TableName])
-          table = azureTables.define
-            ChainId: Number
-            StoreNumber: String
-            UPC: String
-            PurchaseDate: String
-            PurchasePrice: Number
-            ExternalId: String
-            Quantity: Number
-            Weight: String
-            TransactionType: String
-            Id: String
-            PartitionKey: (model) ->
-              model.ChainId
-            RowKey: (model) ->
-              model.Id
-            TableName: () ->
-              newRecord.TableName
-          config.azureConfig.tables[newRecord.TableName] = table
-          table.azureCalls.createTableIfNotExists newRecord.TableName, (error, result, response) ->
-            # do nothing
+        initAzureTable newRecord
 
         #gutil.log newRecord
         result = []
