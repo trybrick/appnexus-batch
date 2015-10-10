@@ -313,6 +313,7 @@ gulp.task 'uploadBlob', () ->
       folder: config.today.format('YYYYMM/DD'), 
       zip: true, 
       deleteExistingBlobs: false, 
+      metadata: {},
       concurrentUploadThreads: 2,
       testRun: !config.isProd 
   })).on('error', gutil.log);
