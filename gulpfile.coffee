@@ -312,9 +312,9 @@ gulp.task 'uploadBlob', () ->
   })).on('error', gutil.log);
 
 createUploadTableTask = (tableTasks, v, k) ->
-  gutil.log v
-  fullPath = v
   taskName = 'azure-table-upload-' + k
+  gutil.log v
+  fullPath = path.resolve(v)
   tableTasks.push(taskName)
   gulp.task taskName, (myCb) ->
     gutil.log fullPath
