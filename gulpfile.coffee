@@ -262,7 +262,7 @@ gulp.task 'transform', (cb) ->
     fullPath = path.resolve(v)
     createTransformTask taskName, fullPath
 
-  traskformTasks.push(cb)
+  transformTasks.push(cb)
   runSequence.apply(null, transformTasks)
 
 # upload Blob
