@@ -180,7 +180,7 @@ doUploadTable = (fullPath, cb) ->
       if err
         gutil.log err
 
-  config.saveStat = debounce(saveStat, 200)
+  config.saveStat = debounce(saveStat, 1000)
   config.stat.skip = config.stat.batchCount
   config.stat.batchCount = 0
   gutil.log config.stat
