@@ -192,10 +192,13 @@ doUploadTable = (fullPath, cb) ->
       .pipe(batchRequestStream)
 
   readStream.on 'end', () ->
+    batchCount = config.stat.batchCount
+
     # make sure final save stat is longer than debounce
     setTimeout () ->
-      config.stat.completed = true
-      saveStat()
+      obj = {completed: true, batchCount: batchCount, allCount: config.batchCount }
+      fs.writeFile statFileName, JSON.stringify(obj), (err) ->
+        # do nothing
     , 600
 
     cb?()
