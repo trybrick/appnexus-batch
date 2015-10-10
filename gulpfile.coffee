@@ -309,7 +309,7 @@ gulp.task 'uploadBlob', () ->
   return gulp.src(mySources).pipe(deployCdn({
       containerName: config.azure.container,
       serviceOptions: [config.azure.account, config.azure.key], 
-      containerOptions: { publicAccessLevel: "off" },
+      containerOptions: { publicAccessLevel: "Off" },
       folder: config.today.format('YYYYMM/DD'), 
       zip: true, 
       deleteExistingBlobs: false, 
