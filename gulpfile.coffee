@@ -15,6 +15,7 @@ mkdirp          = require 'mkdirp'
 nop             = require 'gulp-nop'
 createBatchRequestStream           = require 'batch-request-stream'
 debounce        = require 'debounce'
+azure           = require 'azure-storage'
 
 # CONFIG ---------------------------------------------------------
 
@@ -83,9 +84,12 @@ initAzureTable = (record) ->
 
     config.azureConfig.tables[record.TableName] = table
     try
-      item = table.build(record)
-      item.Id = 'warmup-' + item.Id
-      table.store([item], 1)
+      tableService = azure.createTableService(config.azure.account, config.azure.key)
+      tableService.createTableIfNotExists record.TableName, (error, result, response) ->
+        if !error
+          # result contains true if created; false if already exists
+        else
+        return
     catch err
       gutil.log err
       # do nothing

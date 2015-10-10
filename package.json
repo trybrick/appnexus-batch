@@ -3,6 +3,7 @@
   "description": "Azure point of sale insert.",
   "version": "1.0.0",
   "dependencies": {
+    "azure-storage": "*",
     "azure-table-client": "*",
     "batch-request-stream": "*",
     "csv": "*",
