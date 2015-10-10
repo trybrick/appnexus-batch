@@ -334,8 +334,8 @@ gulp.task 'uploadTable', (cb) ->
     # glob and create a task for each file
     files = glob.sync searchName
 
-    for v, k in files
-      createUploadTableTask tableTasks, v, k
+    for vv, kk in files
+      createUploadTableTask tableTasks, vv, kk
 
   tableTasks.push(cb)
   runSequence.apply(null, tableTasks)
