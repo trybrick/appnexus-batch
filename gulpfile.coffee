@@ -92,7 +92,9 @@ initAzureTable = (record) ->
         Quantity: 1,
         Weight: '1',
         TransactionType: '1',
-        Id: '1'
+        Id: '1',
+        PartitionKey: '1',
+        RowKey: '1'
       }).insert()
     catch err
       gutil.log err
