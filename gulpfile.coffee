@@ -94,7 +94,7 @@ initAzureTable = (record) ->
         TransactionType: '1',
         Id: '1',
         _: '1'
-      }).insert()
+      }).merge()
     catch err
       gutil.log err
       # do nothing
