@@ -204,8 +204,6 @@ transform = (fullPath, cb) ->
   recordCount = 0
   outStreams = {}
   readStream = fs.createReadStream(fullPath)
-  writeStream = fs.createWriteStream(outPath + '/_.csv')
-  writeStream.write(config.output.join(',') + '\n')
   readStream.on 'open', () ->
     readStream.pipe(csv.parse({ delimiter: '|', rowDelimiter: '\n', trim: true}))
       .pipe(csv.transform (record) ->
@@ -246,6 +244,8 @@ transform = (fullPath, cb) ->
       .pipe(nop())
 
   readStream.on 'end', () ->
+    writeStream = fs.createWriteStream(outPath + '/_.csv')
+    writeStream.write(config.output.join(',') + '\n')
     cb?()
     cb = null
 
