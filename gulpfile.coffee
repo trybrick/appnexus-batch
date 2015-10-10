@@ -109,7 +109,7 @@ batchInsert = (items, cb) ->
   gutil.log timeout
 
   setTimeout () ->
-    MyAzureRecord = config.azureConfig.tables[firstItem.TableName]
+    table = config.azureConfig.tables[firstItem.TableName]
 
     batchItems = []
     existingItems = {}
@@ -118,12 +118,12 @@ batchInsert = (items, cb) ->
         # gutil.log 'existingItem ' + v.Id
         continue
       existingItems[v.Id] = v
-      batchItems.push MyAzureRecord.build(v)
+      batchItems.push table.build(v)
     
     # gutil.log batchItems.length
     # gutil.log batch
 
-    MyAzureRecord.store(batchItems, 1).then () ->
+    table.store(batchItems, 1).then () ->
       config.saveStat?(myBatchCount)
       cb()
   , timeout
@@ -296,11 +296,13 @@ gulp.task 'uploadBlob', () ->
     # gzip and upload
     dirName = getWorkPath(v)
 
-    if (!config.cancelBlobUpload[dirName])
-      # gutil.log dirName
-      searchName = path.join(dirName, 'pos*.csv')
-      mySources.push(searchName)
-      # gutil.log searchName
+    #if (config.cancelBlobUpload[dirName])
+    #  gutil.log "blob upload cancel: #{path.basename(v)}"
+    # else
+    # gutil.log dirName
+    searchName = path.join(dirName, 'pos*.csv')
+    mySources.push(searchName)
+    # gutil.log searchName
 
   return unless mySources.length > 0
 
