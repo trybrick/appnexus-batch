@@ -40,6 +40,7 @@ config =
   batchCount: 0
   saveStat: null
   stat: {}
+  cancelBlobUpload: {}
 
   # resulting output schema
   output: [
@@ -188,6 +189,7 @@ transform = (fullPath, cb) ->
     return
   
   if fs.existsSync(path.join(outPath, '_.csv'))
+    config.cancelBlobUpload[outPath] = true
     cb()
     return
 
@@ -271,11 +273,14 @@ gulp.task 'uploadBlob', () ->
   for v, k in config.files
     # gzip and upload
     dirName = getWorkPath(v)
-    gutil.log dirName
 
-    searchName = path.join(dirName, 'pos*.csv')
-    mySources.push(searchName)
-    # gutil.log searchName
+    if (!config.cancelBlobUpload[dirName])
+      gutil.log dirName
+      searchName = path.join(dirName, 'pos*.csv')
+      mySources.push(searchName)
+      # gutil.log searchName
+
+  return unless mySources.length > 0
 
   return gulp.src(mySources).pipe(deployCdn({
       containerName: config.azure.container,
