@@ -82,7 +82,7 @@ initAzureTable = (record) ->
         record.TableName
     config.azureConfig.tables[record.TableName] = table
     try
-      table.build({
+      item = table.build({
         ChainId: 1
         StoreNumber: '1', 
         UPC: '1', 
@@ -93,7 +93,8 @@ initAzureTable = (record) ->
         Weight: '1',
         TransactionType: '1',
         Id: '1'
-      }).merge()
+      }).
+      table.store([item], 1)
     catch err
       gutil.log err
       # do nothing
