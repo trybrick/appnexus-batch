@@ -316,10 +316,7 @@ createUploadTableTask = (tableTasks, v, k) ->
   taskName = 'azure-table-upload-' + k
   tableTasks.push(taskName)
   gulp.task taskName, (myCb) ->
-    setTimeout () ->
-      # let stat output catch up before proceeding
-      doUploadTable(fullPath, myCb)
-    , 1500
+    doUploadTable(fullPath, myCb)
 
 # upload Table
 gulp.task 'uploadTable', (cb) ->
