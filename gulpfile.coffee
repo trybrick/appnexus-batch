@@ -82,18 +82,8 @@ initAzureTable = (record) ->
         record.TableName
     config.azureConfig.tables[record.TableName] = table
     try
-      item = table.build({
-        ChainId: 1
-        StoreNumber: '1', 
-        UPC: '1', 
-        PurchaseDate: '2001/01/01', 
-        PurchasePrice: 1, 
-        ExternalId: '1',
-        Quantity: 1,
-        Weight: '1',
-        TransactionType: '1',
-        Id: '1'
-      })
+      item = table.build(record)
+      item.Id = item.Id + '-init'
       table.store([item], 1)
     catch err
       gutil.log err
