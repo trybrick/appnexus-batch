@@ -93,7 +93,7 @@ initAzureTable = (record) ->
         Weight: '1',
         TransactionType: '1',
         Id: '1'
-      }).
+      })
       table.store([item], 1)
     catch err
       gutil.log err
