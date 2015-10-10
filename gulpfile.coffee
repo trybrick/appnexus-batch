@@ -296,13 +296,13 @@ gulp.task 'uploadBlob', () ->
     # gzip and upload
     dirName = getWorkPath(v)
 
-    #if (config.cancelBlobUpload[dirName])
-    #  gutil.log "blob upload cancel: #{path.basename(v)}"
-    # else
-    # gutil.log dirName
-    searchName = path.join(dirName, 'pos*.csv')
-    mySources.push(searchName)
-    # gutil.log searchName
+    if (config.cancelBlobUpload[dirName])
+      gutil.log "blob upload cancel: #{path.basename(v)}"
+    else
+      # gutil.log dirName
+      searchName = path.join(dirName, 'pos*.csv')
+      mySources.push(searchName)
+      # gutil.log searchName
 
   return unless mySources.length > 0
 
@@ -313,7 +313,10 @@ gulp.task 'uploadBlob', () ->
       folder: config.today.format('YYYYMM/DD'), 
       zip: true, 
       deleteExistingBlobs: false, 
-      metadata: {},
+      metadata: {
+          cacheControl: 'public, max-age=31530000', 
+          cacheControlHeader: 'public, max-age=31530000' 
+      },
       concurrentUploadThreads: 2,
       testRun: !config.isProd 
   })).on('error', gutil.log);
