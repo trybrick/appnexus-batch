@@ -33,7 +33,8 @@ config =
   isProd: gutil.env.type is 'prod'
 
   azure: require '../azure.json'
-  azureConfig: 
+  azureConfig:
+    tables: {}
     batchSize: 100
     concurrency: 100   # batchSize * concurrency = 10K which is half of 20K message azure limit
   today: moment(new Date())
@@ -74,23 +75,7 @@ batchInsert = (items, cb) ->
 
   firstItem = items[0]
 
-  MyAzureRecord = azureTables.define
-    ChainId: String
-    StoreNumber: String
-    UPC: String
-    PurchaseDate: String
-    PurchasePrice: String
-    ExternalId: String
-    Quantity: String
-    Weight: String
-    TransactionType: String
-    Id: String
-    PartitionKey: (model) ->
-      model.ChainId
-    RowKey: (model) ->
-      model.Id
-    TableName: () ->
-      firstItem.TableName
+  MyAzureRecord = config.azureConfig.tables[firstItem.TableName]
 
   batchItems = []
   existingItems = {}
@@ -219,8 +204,31 @@ transform = (fullPath, cb) ->
         newRecord.UPC = ('00000000000' + newRecord.UPC).slice(-11)
         newRecord.Quantity = newRecord.Quantity || 1
         newRecord.ChainId = chainId
+        newRecord.PurchasePrice = (newRecord.PurchasePrice + '').replace(/[^\d.-]/g, '')
         newRecord.Id = "#{newRecord.ExternalId}__#{theDate.format('YYYYMMDD')}__#{newRecord.UPC}"
         newRecord.TableName = "pos#{theDate.format('YYYYMM')}"
+
+        if (!config.azureConfig.tables[newRecord.TableName])
+          table = azureTables.define
+            ChainId: Number
+            StoreNumber: String
+            UPC: String
+            PurchaseDate: String
+            PurchasePrice: Number
+            ExternalId: String
+            Quantity: Number
+            Weight: String
+            TransactionType: String
+            Id: String
+            PartitionKey: (model) ->
+              model.ChainId
+            RowKey: (model) ->
+              model.Id
+            TableName: () ->
+              newRecord.TableName
+          config.azureConfig.tables[newRecord.TableName] = table
+          table.azureCalls.createTableIfNotExists newRecord.TableName, (error, result, response) ->
+            # do nothing
 
         #gutil.log newRecord
         result = []
@@ -285,6 +293,7 @@ gulp.task 'uploadBlob', () ->
   return gulp.src(mySources).pipe(deployCdn({
       containerName: config.azure.container,
       serviceOptions: [config.azure.account, config.azure.key], 
+      containerOptions: { publicAccessLevel: "off" },
       folder: config.today.format('YYYYMM/DD'), 
       zip: true, 
       deleteExistingBlobs: false, 
