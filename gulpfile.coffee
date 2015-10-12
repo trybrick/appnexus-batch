@@ -251,6 +251,7 @@ transform = (fullPath, cb) ->
         newRecord.Quantity = newRecord.Quantity || 1
         newRecord.ChainId = chainId
         newRecord.PurchasePrice = (newRecord.PurchasePrice + '').replace(/[^\d.-]/g, '')
+        newRecord.ExternalId = newRecord.ExternalId.replace(/^0+/, '')
         newRecord.Id = "#{newRecord.ExternalId}__#{theDate.format('YYYYMMDD')}__#{newRecord.UPC}"
         newRecord.TableName = "pos#{theDate.format('YYYYMM')}"
         initAzureTable newRecord
