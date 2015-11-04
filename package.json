@@ -3,8 +3,7 @@
   "description": "Azure point of sale insert.",
   "version": "1.0.0",
   "dependencies": {
-    "azure-storage": "*",
-    "azure-table-client": "*",
+    "anx-cli": "*",
     "batch-request-stream": "*",
     "csv": "*",
     "debounce": "*",
@@ -18,7 +17,6 @@
     "gulp-rename": "*",
     "glob": "*",
     "gulp-util": "*",
-    "gulp-deploy-azure-cdn": "*",
     "gulp-nop": "*",
     "moment": "*",
     "mkdirp": "*"
