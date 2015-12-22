@@ -3,13 +3,15 @@
   "description": "Azure point of sale insert.",
   "version": "1.0.0",
   "dependencies": {
-    "anx-cli": "*",
+    "adnxs-api": "*",
+    "azure-storage": "*",
     "batch-request-stream": "*",
     "csv": "*",
     "debounce": "*",
-    "run-sequence": "^0.3.6",
+    "run-sequence": "*",
     "coffee-script": "*",
     "gulp": "*",
+    "gulp-deploy-azure-cdn": "*",
     "gulp-coffee": "*",
     "gulp-coffeelint": "*",
     "gulp-concat": "*",
@@ -19,12 +21,10 @@
     "gulp-util": "*",
     "gulp-nop": "*",
     "moment": "*",
+    "request-json": "*",
     "mkdirp": "*"
   },
   "devDependencies": {
     "gulp-nop": "0.0.3"
-  },
-  "engines": {
-    "node": ">= 0.12.0"
   }
 }
