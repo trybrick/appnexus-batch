@@ -23,8 +23,7 @@
     "moment": "*",
     "mkdirp": "*",
     "request": "*",
-    "request-json": "*",
-    "sleep": "*"
+    "request-json": "*"
   },
   "devDependencies": {
     "gulp-nop": "0.0.3"

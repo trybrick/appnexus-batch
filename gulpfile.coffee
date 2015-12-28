@@ -18,7 +18,6 @@ requestJson     = require 'request-json'
 deployCdn       = require 'gulp-deploy-azure-cdn'
 azure           = require 'azure-storage'
 http            = require 'http'
-sleeper         = require 'sleep'
 request         = require 'request'
 
 AnxClient       = appnexus.Client
@@ -170,38 +169,38 @@ gulp.task 'createUploadFile', () =>
 
 gulp.task 'insertQueue', (cb) =>
 
-  # sleep to catch up
-  gutil.log '>sleep 5'
-  sleeper.sleep(5)
-  gutil.log '>wake 5'
-
   return unless config.uploadSuccess
-  queueService = azure.createQueueService(config.azure.account, config.azure.key)
-  queueName = config.azure.queueName ? 'highpriority'
-  queueService.createQueueIfNotExists queueName,  (err1) =>
-    if (err1)
-      cb()
-    else
-      # queue exists
-      msg = {
-        "qtype" : "appnexus-segment-upload",
-        "filename" : config.filePath
-        "foldername" : config.today.format('YYYYMM/DD')
-        "container" : config.azure.container
-        "fullpath": null,
-        "token": config.anx.token,
-        "uploadUrl": config.anx.uploadUrl
-        "uploadResult": config.anx.uploadResult
-      }
-      gutil.log '> queue: '
-      gutil.log msg
-
-      queueService.createMessage queueName, JSON.stringify(msg, null), (err2) =>
-        if (err2)
-          gutil.log err2
-        else
-          gutil.log '>insert queue success'
+  gutil.log '>sleep 10'
+  setTimeout () ->
+    gutil.log '>wake 10'
+    queueService = azure.createQueueService(config.azure.account, config.azure.key)
+    queueName = config.azure.queueName ? 'highpriority'
+    queueService.createQueueIfNotExists( queueName, (err1) ->
+      if (err1)
         cb()
+      else
+        # queue exists
+        msg = {
+          "qtype" : "appnexus-segment-upload",
+          "filename" : config.filePath
+          "foldername" : config.today.format('YYYYMM/DD')
+          "container" : config.azure.container
+          "fullpath": null,
+          "token": config.anx.token,
+          "uploadUrl": config.anx.uploadUrl
+          "uploadResult": config.anx.uploadResult
+        }
+        gutil.log '> queue: '
+        gutil.log msg
+
+        queueService.createMessage queueName, JSON.stringify(msg, null), (err2) ->
+          if (err2)
+            gutil.log err2
+          else
+            gutil.log '>insert queue success'
+          cb()
+      )
+    5000
 
 gulp.task 'default', (cb) =>
   runSequence 'createUploadFile', 'insertQueue', cb
