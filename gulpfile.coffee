@@ -170,9 +170,10 @@ gulp.task 'createUploadFile', () =>
 gulp.task 'insertQueue', (cb) =>
 
   return unless config.uploadSuccess
-  gutil.log '>sleep 10'
+  myTimeout = 15000
+  gutil.log '>sleep ' + myTimeout
   setTimeout () ->
-    gutil.log '>wake 10'
+    gutil.log '>wake ' + myTimeout
     queueService = azure.createQueueService(config.azure.account, config.azure.key)
     queueName = config.azure.queueName ? 'highpriority'
     queueService.createQueueIfNotExists( queueName, (err1) ->
@@ -200,7 +201,7 @@ gulp.task 'insertQueue', (cb) =>
             gutil.log '>insert queue success'
           cb()
       )
-    5000
+    myTimeout
 
 gulp.task 'default', (cb) =>
   runSequence 'createUploadFile', 'insertQueue', cb
