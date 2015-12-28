@@ -18,22 +18,25 @@ requestJson     = require 'request-json'
 deployCdn       = require 'gulp-deploy-azure-cdn'
 azure           = require 'azure-storage'
 http            = require 'http'
-anxclient       = appnexus.Client
-anxendpoints    = appnexus.endpoints
+sleeper         = require 'sleep'
+request         = require 'request'
+
+AnxClient       = appnexus.Client
+AnxEndpoint     = appnexus.endpoints
 
 # CONFIG ---------------------------------------------------------
 
 config =
   # path to upload files
-  files: glob.sync '../up/*.anx'
-  workbase: path.resolve '../up'
+  workbase: path.resolve '../sandbox'
   isProd: gutil.env.type is 'prod'
   uploadSuccess: true
 
   anx: require '../appnexus.json'
   azure: require '../azure.json'
-  url: 'http://clientapix.gsn2.com/api/v1/partner/GetItemsCreatedSince?minutesAgo=240'
   today: moment(new Date())
+
+config.azure.container = 'archiveanx'
 
 formatString = (s, prefixChar) =>
   return null unless s?
@@ -85,7 +88,7 @@ uploadBlob = () =>
       serviceOptions: [config.azure.account, config.azure.key], 
       containerOptions: {},
       folder: config.today.format('YYYYMM/DD'), 
-      zip: true, 
+      zip: true,
       deleteExistingBlobs: true, 
       metadata: {
           cacheControl: 'public, max-age=31530000', 
@@ -93,50 +96,85 @@ uploadBlob = () =>
       },
       concurrentUploadThreads: 2,
       testRun: !config.isProd 
-  })).on('error', (err) =>
+  })).on('error', (err) ->
     gutil.log err
     config.uploadSuccess = false
   );
 
-gulp.task 'createUploadFile', (cb) =>
+getAnxUploadUrl = () =>
+  gutil.log '>get AppNexus uploadUrl'
+
+  url = if config.isProd then config.anx.url else config.anx.sandboxUrl
+  client = new AnxClient(url)
+  client
+    .authorize(config.anx.user, config.anx.pass)
+    .then (token) ->
+      config.anx.token = token
+      # upload to new url
+      client.post(AnxEndpoint.BATCH_SEGMENT_SERVICE + '?member_id=' + config.anx.member_id)
+        .then (rsp) ->
+          config.anx.rsp = rsp
+          config.anx.uploadUrl = uploadUrl
+          uploadAppNexus()
+        .catch (err) -> 
+          gutil.log err
+    .catch (err) ->
+      gutil.log err
+
+compressFile = () =>
+  gutil.log '>compressing: ' + config.outFile
+  config.outFileZip = config.outFile + '.gz'
+  gulp.src(config.outFile)
+    .pipe(gzip({ append: true }))
+    .pipe(gulp.dest(config.workbase))
+
+uploadAppNexus = () =>
+  gutil.log 'Uploading: ' + out.outFileZip
+  options = 
+    url: config.anx.uploadUrl
+    headers: 
+      Authorization: config.anx.token
+  
+  fs.createReadStream(out.outFileZip)
+    .pipe request.post options, (err, resp, body) ->
+      if err
+        gutil.log err
+      
+      config.anx.uploadResult = 
+        err: err
+        resp: resp
+        body: body
+
+gulp.task 'createUploadFile', () =>
   mkdirp config.workbase
   config.filePath = config.today.format('YYYYMMDDHH') + '.anx'
   config.outFile = path.join config.workbase, config.filePath
-  gutil.log '>contacting api'
-  hasCb = true
+  getAnxUploadUrl()
+
+  # create upload file
+  gutil.log '>contacting brick api'
+  requestPath = 'api/v1/partner/GetItemsCreatedSince?minutesAgo=' + config.anx.timespan
   client = requestJson.createClient 'http://clientapix.gsn2.com/'
-  client.get 'api/v1/partner/GetItemsCreatedSince?minutesAgo=240', (err, res, body) =>
+  client.get requestPath, (err, res, body) ->
     gutil.log '>creating file' + config.outFile
     outStream = fs.createWriteStream(config.outFile)
     for v, k in body
       data = formatData v
       if (data?)
-        #gutil.log data
+        # gutil.log data
         outStream.write(data)
     outStream.end()
     gutil.log 'created ' + config.outFile
+    compressFile()
     uploadBlob()
 
-
-gulp.task 'uploadAppNexus', () =>
-  url = if config.isProd then config.anx.url else config.anx.sandboxUrl
-
-  client = new axsclient(url)
-  client
-    .authorize(config.anx.user, config.anx.pass)
-    .then (token) =>
-      #upload to new url
-      client.post(anxendpoints.BATCH_SEGMENT_SERVICE + '?member_id=' + config.anx.member_id)
-        .then (rsp) =>
-          uploadUrl = rsp.batch_segment_upload_job.upload_url
-          gutil.log uploadUrl
-          # do upload here
-        .catch (err) =>
-          console.log(err.stack)
-    .catch (err) =>
-      console.log(err.stack)
-
 gulp.task 'insertQueue', (cb) =>
+
+  # sleep to catch up
+  gutil.log '>sleep 5'
+  sleeper.sleep(5)
+  gutil.log '>wake 5'
+
   return unless config.uploadSuccess
   queueService = azure.createQueueService(config.azure.account, config.azure.key)
   queueName = config.azure.queueName ? 'highpriority'
@@ -144,14 +182,19 @@ gulp.task 'insertQueue', (cb) =>
     if (err1)
       cb()
     else
-      #Queue exists
+      # queue exists
       msg = {
         "qtype" : "appnexus-segment-upload",
-        "filename" : config.filename
+        "filename" : config.filePath
         "foldername" : config.today.format('YYYYMM/DD')
         "container" : config.azure.container
-        "fullpath": null
+        "fullpath": null,
+        "token": config.anx.token,
+        "uploadUrl": config.anx.uploadUrl
+        "uploadResult": config.anx.uploadResult
       }
+      gutil.log '> queue: '
+      gutil.log msg
 
       queueService.createMessage queueName, JSON.stringify(msg, null), (err2) =>
         if (err2)

@@ -21,8 +21,10 @@
     "gulp-util": "*",
     "gulp-nop": "*",
     "moment": "*",
+    "mkdirp": "*",
+    "request": "*",
     "request-json": "*",
-    "mkdirp": "*"
+    "sleep": "*"
   },
   "devDependencies": {
     "gulp-nop": "0.0.3"
