@@ -19,6 +19,7 @@ deployCdn       = require 'gulp-deploy-azure-cdn'
 azure           = require 'azure-storage'
 http            = require 'http'
 request         = require 'request'
+exec            = require('child_process').exec;
 
 AnxClient       = appnexus.Client
 AnxEndpoint     = appnexus.endpoints
@@ -79,6 +80,14 @@ formatData = (data) =>
   result
 
 # upload Blob
+waitUntil = (cb, myAction) =>
+  if cb()
+    myAction()
+  else
+    setTimeout ->
+      waitUntil(cb, myAction)
+    , 500
+
 uploadBlob = () =>
   mySources = [config.outFile]
   gutil.log 'uploading file: ' + config.outFile
@@ -126,26 +135,49 @@ compressFile = () =>
     .pipe(gzip({ append: true }))
     .pipe(gulp.dest(config.workbase))
 
-uploadAppNexus = () =>
+doInsertQueue = (cb) =>
+  queueService = azure.createQueueService(config.azure.account, config.azure.key)
+  queueName = config.azure.queueName ? 'highpriority'
+  queueService.createQueueIfNotExists queueName, (err1) ->
+    if (err1)
+      gutil.log err1
+      cb()
+    else
+      # queue exists
+      msg = {
+        "qtype" : "appnexus-segment-upload",
+        "filename" : config.filePath
+        "foldername" : config.today.format('YYYYMM/DD')
+        "container" : config.azure.container
+        "fullpath": null,
+        "token": config.anx.token,
+        "uploadUrl": config.anx.uploadUrl
+        "uploadRsp": config.anx.rsp
+      }
+      gutil.log '> queue: '
+      gutil.log msg
+
+      queueService.createMessage queueName, JSON.stringify(msg, null), (err2) ->
+        if (err2)
+          gutil.log err2
+        else
+          gutil.log '>insert queue success'
+        cb()
+
+    
+uploadAppNexus = (cb) =>
   gutil.log 'Uploading anx: ' + config.outFileZip
   options = 
     url: config.anx.uploadUrl
     headers: 
-      Authorization: config.anx.token
-  
-  fs.createReadStream(config.outFileZip)
-    .pipe request.post options, (err, resp, body) ->
-
-      gutil.log '>uploaded anx: ' + config.outFileZip
-
-      if err
-        gutil.log err
-
-      config.anx.uploadResult = {
-        err: err
-        resp: resp
-        body: body
-      }
+      'Authorization': config.anx.token
+      'Content-Encoding': 'text/*'
+  outText = "curl -v -H 'Content-Type:application/octet-stream' --data-binary '#{config.outFileZip}' '#{config.anx.uploadUrl}'"
+  gutil.log outText
+  child = exec(outText, (error, stdout, stderr) =>
+    gutil.log stdout
+    doInsertQueue(cb)
+  )
 
 gulp.task 'createUploadFile', () =>
   mkdirp config.workbase
@@ -171,48 +203,15 @@ gulp.task 'createUploadFile', () =>
     uploadBlob()
 
 gulp.task 'insertQueue', (cb) =>
-
   return unless config.uploadSuccess
-  myTimeout = 15000
-  gutil.log '>sleep ' + myTimeout
-  setTimeout( () ->
-    gutil.log '>wake ' + myTimeout
-    uploadAppNexus()
-    queueService = azure.createQueueService(config.azure.account, config.azure.key)
-    queueName = config.azure.queueName ? 'highpriority'
-    queueService.createQueueIfNotExists( queueName, (err1) ->
-      if (err1)
-        gutil.log err1
-        cb()
-      else
-        myTimeout = myTimeout * 1
-        gutil.log '>sleep2 ' + myTimeout
-        setTimeout( () ->
-          gutil.log '>wake2 ' + myTimeout
-          # queue exists
-          msg = {
-            "qtype" : "appnexus-segment-upload",
-            "filename" : config.filePath
-            "foldername" : config.today.format('YYYYMM/DD')
-            "container" : config.azure.container
-            "fullpath": null,
-            "token": config.anx.token,
-            "uploadUrl": config.anx.uploadUrl
-            "uploadResult": config.anx.uploadResult
-          }
-          gutil.log '> queue: '
-          gutil.log msg
 
-          queueService.createMessage queueName, JSON.stringify(msg, null), (err2) ->
-            if (err2)
-              gutil.log err2
-            else
-              gutil.log '>insert queue success'
-            cb()
-
-        myTimeout)
-      )
-    myTimeout)
+  waitUntil () =>
+    return false unless config.outFileZip
+    exists = fs.existsSync(config.outFileZip)
+    gutil.log ">#{exists} #{config.outFileZip}"
+    return exists
+  , () =>
+    uploadAppNexus(cb)
 
 gulp.task 'default', (cb) =>
   runSequence 'createUploadFile', 'insertQueue', cb
