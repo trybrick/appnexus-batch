@@ -113,8 +113,7 @@ getAnxUploadUrl = () =>
       client.post(AnxEndpoint.BATCH_SEGMENT_SERVICE + '?member_id=' + config.anx.member_id)
         .then (rsp) ->
           config.anx.rsp = rsp
-          config.anx.uploadUrl = uploadUrl
-          uploadAppNexus()
+          config.anx.uploadUrl = rsp.batch_segment_upload_job.upload_url
         .catch (err) -> 
           gutil.log err
     .catch (err) ->
@@ -128,21 +127,25 @@ compressFile = () =>
     .pipe(gulp.dest(config.workbase))
 
 uploadAppNexus = () =>
-  gutil.log 'Uploading: ' + out.outFileZip
+  gutil.log 'Uploading anx: ' + config.outFileZip
   options = 
     url: config.anx.uploadUrl
     headers: 
       Authorization: config.anx.token
   
-  fs.createReadStream(out.outFileZip)
+  fs.createReadStream(config.outFileZip)
     .pipe request.post options, (err, resp, body) ->
+
+      gutil.log '>uploaded anx: ' + config.outFileZip
+
       if err
         gutil.log err
-      
-      config.anx.uploadResult = 
+
+      config.anx.uploadResult = {
         err: err
         resp: resp
         body: body
+      }
 
 gulp.task 'createUploadFile', () =>
   mkdirp config.workbase
@@ -172,36 +175,44 @@ gulp.task 'insertQueue', (cb) =>
   return unless config.uploadSuccess
   myTimeout = 15000
   gutil.log '>sleep ' + myTimeout
-  setTimeout () ->
+  setTimeout( () ->
     gutil.log '>wake ' + myTimeout
+    uploadAppNexus()
     queueService = azure.createQueueService(config.azure.account, config.azure.key)
     queueName = config.azure.queueName ? 'highpriority'
     queueService.createQueueIfNotExists( queueName, (err1) ->
       if (err1)
+        gutil.log err1
         cb()
       else
-        # queue exists
-        msg = {
-          "qtype" : "appnexus-segment-upload",
-          "filename" : config.filePath
-          "foldername" : config.today.format('YYYYMM/DD')
-          "container" : config.azure.container
-          "fullpath": null,
-          "token": config.anx.token,
-          "uploadUrl": config.anx.uploadUrl
-          "uploadResult": config.anx.uploadResult
-        }
-        gutil.log '> queue: '
-        gutil.log msg
+        myTimeout = myTimeout * 1
+        gutil.log '>sleep2 ' + myTimeout
+        setTimeout( () ->
+          gutil.log '>wake2 ' + myTimeout
+          # queue exists
+          msg = {
+            "qtype" : "appnexus-segment-upload",
+            "filename" : config.filePath
+            "foldername" : config.today.format('YYYYMM/DD')
+            "container" : config.azure.container
+            "fullpath": null,
+            "token": config.anx.token,
+            "uploadUrl": config.anx.uploadUrl
+            "uploadResult": config.anx.uploadResult
+          }
+          gutil.log '> queue: '
+          gutil.log msg
 
-        queueService.createMessage queueName, JSON.stringify(msg, null), (err2) ->
-          if (err2)
-            gutil.log err2
-          else
-            gutil.log '>insert queue success'
-          cb()
+          queueService.createMessage queueName, JSON.stringify(msg, null), (err2) ->
+            if (err2)
+              gutil.log err2
+            else
+              gutil.log '>insert queue success'
+            cb()
+
+        myTimeout)
       )
-    myTimeout
+    myTimeout)
 
 gulp.task 'default', (cb) =>
   runSequence 'createUploadFile', 'insertQueue', cb
