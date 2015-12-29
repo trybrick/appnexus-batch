@@ -175,8 +175,15 @@ uploadAppNexus = (cb) =>
   outText = "curl -v -H 'Content-Type:application/octet-stream' --data-binary '#{config.outFileZip}' '#{config.anx.uploadUrl}'"
   gutil.log outText
   child = exec(outText, (error, stdout, stderr) =>
-    gutil.log stdout
     doInsertQueue(cb)
+    try 
+      
+      gutil.log 'stdout:' + stdout
+      gutil.log 'stderr:' + stderr
+      if (error)
+        gutil.log 'exec error:' + error
+
+    catch ex
   )
 
 gulp.task 'createUploadFile', () =>
