@@ -214,7 +214,7 @@ gulp.task 'insertQueue', (cb) =>
 
   waitUntil () =>
     return false unless config.outFileZip
-    exists = fs.existsSync(config.outFileZip)
+    exists = fs.existsSync(config.outFileZip) and config.anx.rsp
     gutil.log ">#{exists} #{config.outFileZip}"
     return exists
   , () =>
