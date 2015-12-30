@@ -172,7 +172,7 @@ uploadAppNexus = (cb) =>
     headers: 
       'Authorization': config.anx.token
       'Content-Encoding': 'text/*'
-  outText = "curl -v -H 'Content-Type:application/octet-stream' --data-binary '#{config.outFileZip}' '#{config.anx.uploadUrl}'"
+  outText = "curl -v -H \"Content-Type:application/octet-stream\" --data-binary \"#{config.outFileZip}\" \"#{config.anx.uploadUrl}\""
   gutil.log outText
   child = exec(outText, (error, stdout, stderr) =>
     doInsertQueue(cb)
