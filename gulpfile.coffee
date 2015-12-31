@@ -35,6 +35,7 @@ config =
   anx: require '../appnexus.json'
   azure: require '../azure.json'
   today: moment(new Date())
+  count: 0
 
 config.azure.container = 'archiveanx'
 
@@ -145,11 +146,12 @@ doInsertQueue = (cb) =>
     else
       # queue exists
       msg = {
-        "qtype" : "appnexus-segment-upload",
+        "qtype" : "appnexus-segment-upload"
         "filename" : config.filePath
         "foldername" : config.today.format('YYYYMM/DD')
         "container" : config.azure.container
-        "fullpath": null,
+        "fullpath": null
+        "count": config.count
         "token": config.anx.token,
         "uploadUrl": config.anx.uploadUrl
         "uploadRsp": config.anx.rsp
@@ -172,7 +174,7 @@ uploadAppNexus = (cb) =>
     headers: 
       'Authorization': config.anx.token
       'Content-Encoding': 'text/*'
-  outText = "curl -v -H \"Content-Type:application/octet-stream\" --data-binary \"#{config.outFileZip}\" \"#{config.anx.uploadUrl}\""
+  outText = "curl -v -H \"Content-Type:application/octet-stream\" --data-binary \"@#{config.outFileZip}\" \"#{config.anx.uploadUrl}\""
   gutil.log outText
   child = exec(outText, (error, stdout, stderr) =>
     doInsertQueue(cb)
@@ -202,8 +204,10 @@ gulp.task 'createUploadFile', () =>
     for v, k in body
       data = formatData v
       if (data?)
+        config.count++
         # gutil.log data
-        outStream.write(data)
+        if (config.count < 10)
+          outStream.write(data)
     outStream.end()
     gutil.log 'created ' + config.outFile
     compressFile()
