@@ -39,13 +39,10 @@ config =
 
 config.azure.container = 'archiveanx'
 
-formatString = (s, prefixChar) =>
+formatString = (s) =>
   return null unless s?
 
-  result = s.replace(/\W+/gi, '_')
-
-  if (prefixChar)
-    result = "#{prefixChar}_#{result}"
+  result = (s + '').replace(/\W+/gi, '_')
 
   result.toLowerCase()
 
@@ -55,19 +52,19 @@ formatData = (data) =>
   result = "#{data.AppNexusId},store#{formatString(data.StoreId)}"
   isValid = false
 
-  if (data.Department?)
+  if (data.DepartmentId?)
     isValid = true
     result = "#{result};dacs#{formatString(data.DepartmentId)}"
 
-  if (data.Aisle?)
+  if (data.AisleId?)
     isValid = true
     result = "#{result};dacs#{formatString(data.AisleId)}"
 
-  if (data.Category?)
+  if (data.CategoryId?)
     isValid = true
     result = "#{result};dacs#{formatString(data.CategoryId)}"
 
-  if (data.Shelf?)
+  if (data.ShelfId?)
     isValid = true
     result = "#{result};dacs#{formatString(data.ShelfId)}"
 
