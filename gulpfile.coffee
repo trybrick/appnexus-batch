@@ -52,28 +52,28 @@ formatString = (s, prefixChar) =>
 formatData = (data) =>
   return null unless data.AppNexusId?
   return null unless data.AppNexusId != '0'
-  result = "#{data.AppNexusId},site_#{formatString(data.SiteName)};store_#{formatString(data.StoreName)}"
+  result = "#{data.AppNexusId},store#{formatString(data.StoreId)}"
   isValid = false
 
   if (data.Department?)
     isValid = true
-    result = "#{result};dept_#{formatString(data.Department)}"
+    result = "#{result};dacs#{formatString(data.DepartmentId)}"
 
   if (data.Aisle?)
     isValid = true
-    result = "#{result};aisle_#{formatString(data.Aisle)}"
+    result = "#{result};dacs#{formatString(data.AisleId)}"
 
   if (data.Category?)
     isValid = true
-    result = "#{result};cat_#{formatString(data.Category)}"
+    result = "#{result};dacs#{formatString(data.CategoryId)}"
 
   if (data.Shelf?)
     isValid = true
-    result = "#{result};shelf_#{formatString(data.Shelf)}"
+    result = "#{result};dacs#{formatString(data.ShelfId)}"
 
-  if (data.BrandName?)
-    isValid = true
-    result = "#{result};brand_#{formatString(data.BrandName)}"
+  #if (data.BrandName?)
+  #  isValid = true
+  #  result = "#{result};brand#{formatString(data.BrandName)}"
 
   return null unless isValid
 
