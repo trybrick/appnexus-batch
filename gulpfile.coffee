@@ -50,27 +50,18 @@ formatData = (data) =>
   return null unless data.AppNexusId?
   return null unless data.AppNexusId != '0'
   result = "#{data.AppNexusId},store#{formatString(data.StoreId)}"
-  isValid = false
 
   if (data.DepartmentId?)
-    isValid = true
     result = "#{result};dacs#{formatString(data.DepartmentId)}"
 
   if (data.AisleId?)
-    isValid = true
     result = "#{result};dacs#{formatString(data.AisleId)}"
 
   if (data.CategoryId?)
-    isValid = true
     result = "#{result};dacs#{formatString(data.CategoryId)}"
 
   if (data.ShelfId?)
-    isValid = true
     result = "#{result};dacs#{formatString(data.ShelfId)}"
-
-  #if (data.BrandName?)
-  #  isValid = true
-  #  result = "#{result};brand#{formatString(data.BrandName)}"
 
   return null unless isValid
 
