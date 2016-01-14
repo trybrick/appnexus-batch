@@ -63,8 +63,6 @@ formatData = (data) =>
   if (data.ShelfId?)
     result = "#{result};dacs#{formatString(data.ShelfId)}"
 
-  return null unless isValid
-
   result = result + '\n'
   result
 
