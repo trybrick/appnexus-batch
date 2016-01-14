@@ -118,6 +118,7 @@ getAnxUploadUrl = () =>
       gutil.log err
 
 compressFile = () =>
+  gutil.log '>count: ' + config.count
   gutil.log '>compressing: ' + config.outFile
   config.outFileZip = config.outFile + '.gz'
   gulp.src(config.outFile)
@@ -194,8 +195,8 @@ gulp.task 'createUploadFile', () =>
       if (data?)
         config.count++
         # gutil.log data
-        if (config.count < 10)
-          outStream.write(data)
+        outStream.write(data)
+
     outStream.end()
     gutil.log 'created ' + config.outFile
     compressFile()
