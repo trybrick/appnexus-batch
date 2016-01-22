@@ -49,19 +49,26 @@ formatString = (s) =>
 formatData = (data) =>
   return null unless data.AppNexusId?
   return null unless data.AppNexusId != '0'
-  result = "#{data.AppNexusId},store#{formatString(data.StoreId)}"
+  result = "#{data.AppNexusId},"
+  isValid = false
 
   if (data.DepartmentId?)
+    isValid = true
     result = "#{result};dacs#{formatString(data.DepartmentId)}"
 
   if (data.AisleId?)
+    isValid = true
     result = "#{result};dacs#{formatString(data.AisleId)}"
 
   if (data.CategoryId?)
+    isValid = true
     result = "#{result};dacs#{formatString(data.CategoryId)}"
 
   if (data.ShelfId?)
+    isValid = true
     result = "#{result};dacs#{formatString(data.ShelfId)}"
+
+  return null unless isValid
 
   result = result + '\n'
   result
