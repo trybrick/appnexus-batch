@@ -30,7 +30,6 @@ config =
   # path to upload files
   workbase: path.resolve '../sandbox'
   isProd: gutil.env.type is 'prod'
-  uploadSuccess: true
 
   anx: require '../appnexus.json'
   azure: require '../azure.json'
@@ -82,27 +81,6 @@ waitUntil = (cb, myAction) =>
       waitUntil(cb, myAction)
     , 500
 
-uploadBlob = () =>
-  mySources = [config.outFile]
-  gutil.log 'uploading file: ' + config.outFile
-  return gulp.src(mySources).pipe(deployCdn({
-      containerName: config.azure.container,
-      serviceOptions: [config.azure.account, config.azure.key], 
-      containerOptions: {},
-      folder: config.today.format('YYYYMM/DD'), 
-      zip: true,
-      deleteExistingBlobs: true, 
-      metadata: {
-          cacheControl: 'public, max-age=31530000', 
-          cacheControlHeader: 'public, max-age=31530000' 
-      },
-      concurrentUploadThreads: 2,
-      testRun: !config.isProd 
-  })).on('error', (err) ->
-    gutil.log err
-    config.uploadSuccess = false
-  );
-
 getAnxUploadUrl = () =>
   gutil.log '>get AppNexus uploadUrl'
 
@@ -129,37 +107,6 @@ compressFile = () =>
   gulp.src(config.outFile)
     .pipe(gzip({ append: true }))
     .pipe(gulp.dest(config.workbase))
-
-doInsertQueue = (cb) =>
-  queueService = azure.createQueueService(config.azure.account, config.azure.key)
-  queueName = config.azure.queueName ? 'highpriority'
-  queueService.createQueueIfNotExists queueName, (err1) ->
-    if (err1)
-      gutil.log err1
-      cb()
-    else
-      # queue exists
-      msg = {
-        "qtype" : "appnexus-segment-upload"
-        "filename" : config.filePath
-        "foldername" : config.today.format('YYYYMM/DD')
-        "container" : config.azure.container
-        "fullpath": null
-        "count": config.count
-        "token": config.anx.token,
-        "uploadUrl": config.anx.uploadUrl
-        "uploadRsp": config.anx.rsp
-      }
-      gutil.log '> queue: '
-      gutil.log msg
-
-      queueService.createMessage queueName, JSON.stringify(msg, null), (err2) ->
-        if (err2)
-          gutil.log err2
-        else
-          gutil.log '>insert queue success'
-        cb()
-
     
 uploadAppNexus = (cb) =>
   gutil.log 'Uploading anx: ' + config.outFileZip
@@ -171,7 +118,6 @@ uploadAppNexus = (cb) =>
   outText = "curl -v -H \"Content-Type:application/octet-stream\" --data-binary \"@#{config.outFileZip}\" \"#{config.anx.uploadUrl}\""
   gutil.log outText
   child = exec(outText, (error, stdout, stderr) =>
-    doInsertQueue(cb)
     try 
       
       gutil.log 'stdout:' + stdout
@@ -205,11 +151,8 @@ gulp.task 'createUploadFile', () =>
     outStream.end()
     gutil.log 'created ' + config.outFile
     compressFile()
-    uploadBlob()
 
-gulp.task 'insertQueue', (cb) =>
-  return unless config.uploadSuccess
-
+gulp.task 'uploadToAnx', (cb) =>
   waitUntil () =>
     return false unless config.outFileZip
     exists = fs.existsSync(config.outFileZip) and config.anx.rsp
@@ -219,4 +162,4 @@ gulp.task 'insertQueue', (cb) =>
     uploadAppNexus(cb)
 
 gulp.task 'default', (cb) =>
-  runSequence 'createUploadFile', 'insertQueue', cb
+  runSequence 'createUploadFile', 'uploadToAnx', cb
